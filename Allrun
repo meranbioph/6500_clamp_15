@@ -1,0 +1,73 @@
+#!/bin/sh
+cd ${0%/*} || exit 1  # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+###############################
+# Allrun for clamp_14
+# This is a Shell script, so it uses # to comment out text
+# to make this an exectuable file, in Shell in the case directory, run: chmod +x Allrun
+# run the Allrun file, in Shell in the case directory, run: ./Allrun
+# The first line of this file tells Ubunutu to run the shell, I think.
+# The second line sets the working directory
+###############################
+# set up the cases
+
+cp -r ./clamp_14_01/0_orig ./clamp_14_01/0
+cp -r ./clamp_14_02/0_orig ./clamp_14_02/0
+
+runApplication blockMesh -case ./clamp_15_01
+runApplication blockMesh -case ./clamp_15_02
+runApplication topoSet -case ./clamp_15_01
+runApplication topoSet -case ./clamp_15_02
+runApplication setFields -case ./clamp_15_02
+
+###############################
+# first loop of the paired cases
+
+runApplication pimpleFoam -case ./clamp_15_01
+
+rm -r ./clamp_15_01/0
+rm ./clamp_15_01/90/uniform/time
+mv ./clamp_15_01/90 ./clamp_15_01/0
+
+runApplication mapFields -case ./clamp_15_02 -consistent ./clamp_15_01
+
+cp ./clamp_15_01/0/phi ./clamp_15_02/0/phi
+
+runApplication clampPimpleFoam -case ./clamp_15_02
+
+rm ./log.mapFields
+rm ./log.pimpleFoam
+rm ./log.clampPimpleFoam
+
+###############################
+# enter the loop proper
+
+loopi=2
+
+# Start loop
+while [ $loopi -le 159 ]                  # Number of loops = hours / 4, 96 = day
+do
+
+  # rename ./clamp_14_01/A + 90 to ./clamp_14_01/A + 900
+  cp -r ./clamp_15_01/$((($loopi-2)*900)) ./clamp_15_01/$((($loopi-2)*900 + 810))
+
+  runApplication pimpleFoam -case ./clamp_15_01    # NB: needed to change path in 0/U to /data/UDataTable.csv
+                                                  # In the loop, this might not need to be 90 seconds, given the start field will be very similar to new one?
+
+  runApplication mapFields -case ./clamp_15_02 -consistent ./clamp_15_01
+  rm -r ./clamp_15_01/$((($loopi-2)*900 + 810))
+  cp ./clamp_15_01/$((($loopi-1)*900))/phi ./clamp_15_02/$((($loopi-1)*900))/phi
+
+  runApplication clampPimpleFoam -case ./clamp_15_02      # Need to add in inlet temperature like it is with inlet U.
+
+  rm ./log.mapFields
+  rm ./log.pimpleFoam
+  rm ./log.clampPimpleFoam
+
+  loopi=$(($loopi + 1))
+
+  # end loop
+done
