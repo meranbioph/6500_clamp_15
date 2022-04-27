@@ -14,8 +14,8 @@ cd ${0%/*} || exit 1  # Run from this directory
 ###############################
 # set up the cases
 
-cp -r ./clamp_14_01/0_orig ./clamp_14_01/0
-cp -r ./clamp_14_02/0_orig ./clamp_14_02/0
+cp -r ./clamp_15_01/0_orig ./clamp_15_01/0
+cp -r ./clamp_15_02/0_orig ./clamp_15_02/0
 
 runApplication blockMesh -case ./clamp_15_01
 runApplication blockMesh -case ./clamp_15_02
